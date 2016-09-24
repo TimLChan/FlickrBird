@@ -20,22 +20,24 @@
 #       http://www.gnu.org/licenses/gpl.html
 
 # Meta
-__version__ = '0.1'
+__version__ = '0.2'
 __license__ = "GNU General Public License (GPL) Version 3"
-__version_info__ = (0, 1)
+__version_info__ = (0, 2)
 __author__ = 'Abhinay Omkar <abhiomkar AT gmail DOT com>'
+__maintainer__ = 'Tim Chan <tim AT timchan DOT com>'
 
-#############################################################################
-# This script downloads Flickr User's public photos to current directory.
+#######################################################################################################################################################
+# This script downloads Flickr User's public photos to current directory inside a folder denoted by the Flickr username you are trying to backup..
 # Allows resuming download.
 # Change the value of '_userFlickr' with the Flickr User's URL
 # Change the value of '_photoSize' below
-#############################################################################
+# Add your api_key and secret from your Flickr App Garden
+#######################################################################################################################################################
 
 import urllib, os, flickrapi
 
 # Replace the below value with whatever URL of your Flickr photostream
-_userFlickr = 'http://flickr.com/photos/your_flickr_url'
+_userFlickr = 'https://www.flickr.com/photos/photostreamhere'
 
 # 's'	small square 75x75
 # 't'	thumbnail, 100 on longest side
@@ -43,25 +45,45 @@ _userFlickr = 'http://flickr.com/photos/your_flickr_url'
 # ''	medium, 500 on longest side
 # 'b'	large, 1024 on longest side (only exists for very large original images)
 # 'o'	original image, either a jpg, gif or png, depending on source format (Pro Account Only)
-_photoSize = ''
+_photoSize = 'o'
 
 def main():
 	global _photoSize
-	api_key = '9ef09d14ab74f2c204b5c4ceea060b4a'
-	flickr = flickrapi.FlickrAPI(api_key)
+	api_key = ''
+	secret = ''
+	flickr = flickrapi.FlickrAPI(api_key, secret)
 	
-	# Convert Flickr URL to User NSID
+	# Convert Flickr URL to User NSID and get their username
 	_userId = flickr.urls_lookupUser(url=_userFlickr).find('user').attrib['id']
-
+	peopleUsername = flickr.people_getInfo(user_id=_userId).find('person/username').text
+	
 	# Get all user's public photos
-	publicPhotos = flickr.people_getPublicPhotos(api_key=api_key, user_id = _userId, per_page = 500)
 	photos = []
-	for photo in publicPhotos.getiterator('photo'):
-		photos.append(photo.attrib['id'])
+	
+	#Get number of pages
+	numPages = flickr.people_getPublicPhotos(api_key=api_key, user_id = _userId, per_page = 500).find('photos').attrib['pages']
+	
+	#Where there is more than 1 page of photos, go through each page to get them all
+	for i in range(1,int(numPages)+1):
+		print "--> Getting page %s" % (str(i))
+		publicPhotos = flickr.people_getPublicPhotos(api_key=api_key, user_id = _userId, per_page = 500, page = str(i))
+		
+		for photo in publicPhotos.getiterator('photo'):
+			photos.append(photo.attrib['id'])
 
-	totalPhotos=len(photos)
-	flog = open('.'+_userId+'-photos','a+'); flog.seek(0); log = flog.read().split(';')
+		totalPhotos=len(photos)
+		flog = open('.'+_userId+'-photos','a+'); flog.seek(0); log = flog.read().split(';')
 
+	#Create folder to house photos
+	folder = os.path.join(os.getcwd(), peopleUsername)
+	try: 
+		os.makedirs(folder)
+		print "--> Created folder %s" % str(folder)
+	except OSError:
+		print "--> Using folder %s" % str(folder)
+		if not os.path.isdir(folder):
+			raise
+			
 	# removing downloaded photos (log) from the download list (photos)
 	photos = set([p+_photoSize for p in photos])-set(log)
 	photos = [p.replace(_photoSize,'') for p in photos]
@@ -71,7 +93,7 @@ def main():
 		print "--> Started downloading %s photos" % str(len(photos))
 	
 	print '>> You can suspend the download with ^C.'
-
+	
 	# ok, start downloading photos one-by-one
 	for photo in photos:
 		photoTitle = flickr.photos_getInfo(photo_id=photo).find('photo/title').text or ''
@@ -127,10 +149,10 @@ def main():
 		else:
 			photoSuffix = '('+_photoSize+')'
 		# actually, downloading now...
-		urllib.urlretrieve(photoDownload, os.path.join(os.getcwd(), photoTitle+' '+str(photo)+' '+photoSuffix+photoType))
+		urllib.urlretrieve(photoDownload, os.path.join(os.getcwd(), peopleUsername ,photoTitle+' '+str(photo)+' '+photoSuffix+photoType))
 		flog.write(photo+_photoSize+';')
 
-	peopleUsername = flickr.people_getInfo(user_id=_userId).find('person/realname').text
+	
 	if not peopleUsername:
 	# Some times the Flickr user doesn't have a real name, so...
 		peopleUsername = _userId
