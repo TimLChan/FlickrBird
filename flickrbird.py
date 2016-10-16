@@ -56,6 +56,7 @@ def main():
 	# Convert Flickr URL to User NSID and get their username
 	_userId = flickr.urls_lookupUser(url=_userFlickr).find('user').attrib['id']
 	peopleUsername = flickr.people_getInfo(user_id=_userId).find('person/username').text
+	print "--> Getting %s's photos" % peopleUsername
 	
 	# Get all user's public photos
 	photos = []
@@ -72,7 +73,6 @@ def main():
 			photos.append(photo.attrib['id'])
 
 		totalPhotos=len(photos)
-		flog = open('.'+_userId+'-photos','a+'); flog.seek(0); log = flog.read().split(';')
 
 	#Create folder to house photos
 	folder = os.path.join(os.getcwd(), peopleUsername)
@@ -85,6 +85,8 @@ def main():
 			raise
 			
 	# removing downloaded photos (log) from the download list (photos)
+	print "--> Loading previously downloaded photos."
+	flog = open(os.path.join(os.getcwd(),peopleUsername,'.'+_userId+'-photos'),'a+'); flog.seek(0); log = flog.read().split(';')
 	photos = set([p+_photoSize for p in photos])-set(log)
 	photos = [p.replace(_photoSize,'') for p in photos]
 	if totalPhotos-len(photos):
