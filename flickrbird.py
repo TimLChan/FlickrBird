@@ -160,7 +160,7 @@ def main():
 		peopleUsername = _userId
 	print "--> Downloaded %s photos of %s !" % (str(len(photos)), peopleUsername)
 	flog.close()
-	# You have some awesome photos! :)
+	# You have some awesome photos
 
 if __name__ == '__main__':
 	try:
