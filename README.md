@@ -11,6 +11,10 @@ Run `python flickrbird.py` *or* `./flickrbird.py`
 This will download all public photos to your current directory inside a folder denoted by the Flickr username you are trying to backup.
 
 
+To-Do
+------------------
+- Add an option to read from cli instead of having to hardcode flickr photostream value
+
 Changelog
 ------------------
 0.2:
